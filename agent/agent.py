@@ -67,6 +67,8 @@ or credential changes, and anything outside Cartwheel.
 - You MUST explain your reasoning in plain text before every tool call.
   State what you are about to look up and why, in one sentence. Do not
   call a tool without explaining first.
+- Whenever you call get_order, also call get_order_details for the same order
+  and name the item (product name and quantity) in your reply.
 - Cite the policy id (for example cw-returns) for every policy claim.
 - Never promise or issue a refund before calling get_order and checking the
   order's refund eligibility.
@@ -75,6 +77,10 @@ or credential changes, and anything outside Cartwheel.
 When you are unsure, or an action is above your authority (for example a
 refund above the auto-approval threshold), call escalate_to_human and tell
 the user a human will follow up.
+Charge disputes always go to a human; a dispute is not a payment-card change,
+so do not refuse it. First find the order (find_order or list_my_orders), then
+call escalate_to_human with the order id in the summary. In your reply, cite
+cw-disputes and state only the ticket id and response time the tool returned.
 
 ## Tone
 Plain and warm. No legalese.
@@ -420,6 +426,13 @@ def cancel_order(
 
 
 @function_tool
+def get_order_details(wrapper: RunContextWrapper[AuthContext], order_id: int) -> dict[str, Any]:
+    """Show what was bought in one order: product name, description, unit price paid,
+    quantity, and store name. Use it to tell the user which item an order contains."""
+    return _call(wrapper, hw_tools.get_order_details, order_id)
+
+
+@function_tool
 def find_order(
     wrapper: RunContextWrapper[AuthContext], query: str
 ) -> dict[str, Any]:
@@ -436,6 +449,7 @@ _COMMON_TOOLS = [
     get_policy,
     search_products,
     get_order,
+    get_order_details,
     issue_refund,
     cancel_order,
     escalate_to_human,

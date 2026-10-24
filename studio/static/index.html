@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartwheel Studio</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --accent: #2f5bd3; --accent-ink: #ffffff; --user: #eef2fc; --tool: #f7f5ee; --text: #f1f6f1;
+    --ok: #1f7a3d; --bad: #b3261e; --warn: #9a6200; --code: #faf9f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9b9a94; --line: #34332f;
+      --accent: #7c9bf0; --accent-ink: #10131c; --user: #23293a; --tool: #2a2822; --text: #1f2a21;
+      --ok: #6fcf8d; --bad: #f08a80; --warn: #e5b45a; --code: #191917;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .app { display: grid; grid-template-columns: 270px 1fr 340px; height: 100vh; }
+  aside, main, .review { overflow: auto; }
+  aside { border-right: 1px solid var(--line); background: var(--panel); padding: 14px; }
+  .review { border-left: 1px solid var(--line); background: var(--panel); padding: 14px; }
+  main { display: flex; flex-direction: column; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+  .meta { color: var(--muted); font-size: 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  input, select, textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line);
+         border-radius: 6px; background: var(--bg); }
+  textarea { resize: vertical; min-height: 60px; }
+  .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
+         padding: 6px 10px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 6px; align-items: center; }
+  .row > * { flex: 1; }
+  .sessions { list-style: none; padding: 0; margin: 0; }
+  .sessions li { padding: 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+  .sessions li:hover { background: var(--bg); }
+  .sessions li.active { border-color: var(--accent); background: var(--bg); }
+  .sessions .t { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 9px;
+          border: 1px solid var(--line); color: var(--muted); }
+  .pill.ok { color: var(--ok); border-color: var(--ok); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  .head { padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .chat { flex: 1; overflow: auto; padding: 18px; }
+  .empty { color: var(--muted); text-align: center; margin-top: 20vh; }
+  .turn { margin-bottom: 22px; }
+  .bubble { padding: 10px 12px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; }
+  .user { background: var(--user); margin-left: 15%; }
+  .reply { background: var(--panel); border: 1px solid var(--line); margin-right: 10%; }
+  .who { font-size: 11px; color: var(--muted); margin: 10px 0 3px; }
+  .steps { margin: 8px 0 0 10px; border-left: 2px solid var(--line); padding-left: 10px; }
+  .step { margin: 6px 0; font-size: 13px; }
+  .step.text { background: var(--text); padding: 6px 8px; border-radius: 6px; white-space: pre-wrap; }
+  details.tool { background: var(--tool); border-radius: 6px; padding: 6px 8px; }
+  details.tool summary { cursor: pointer; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .err { color: var(--bad); }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 8px;
+        overflow: auto; font-size: 12px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+  .db { margin-top: 6px; font-size: 12px; color: var(--warn); }
+  .composer { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--panel); }
+  .composer textarea { min-height: 42px; height: 42px; }
+  .seg { display: flex; gap: 4px; }
+  .seg button { flex: 1; }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .titleEdit { width: auto; min-width: 200px; max-width: 60%; font-weight: 600; border: 1px solid transparent;
+               background: transparent; padding: 2px 6px; margin-left: -6px; }
+  .titleEdit:hover { border-color: var(--line); }
+  .titleEdit:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink);
+           color: var(--bg); padding: 8px 14px; border-radius: 6px; display: none; z-index: 9; }
+  @media (max-width: 1000px) {
+    .app { grid-template-columns: 1fr; height: auto; }
+    aside, .review { border: 0; border-bottom: 1px solid var(--line); }
+    main { min-height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>Cartwheel Studio</h1>
+    <div class="meta" id="info">loading…</div>
+
+    <h2>Start a new chat</h2>
+    <div class="row">
+      <div><label for="role">Role</label><select id="role"></select></div>
+      <div><label for="user">User id</label><input id="user" type="number"></div>
+    </div>
+    <label for="startMsg">First message</label>
+    <textarea id="startMsg" placeholder="Type a message and press Enter to start a new chat"></textarea>
+
+    <h2>Data</h2>
+    <button class="btn" style="width:100%" id="reset">Reset order data (re-seed)</button>
+    <div class="meta" style="margin-top:4px">Undo refunds, cancellations and tickets. Sessions are kept.</div>
+
+    <h2>Sessions</h2>
+    <ul class="sessions" id="sessions"></ul>
+  </aside>
+
+  <main>
+    <div class="head" id="head"></div>
+    <div class="chat" id="chat"></div>
+    <div class="composer">
+      <textarea id="msg" placeholder="Type a message… (Enter to send, Shift+Enter for a new line)"></textarea>
+      <button class="btn primary" id="send">Send</button>
+    </div>
+  </main>
+
+  <section class="review" id="review">
+    <h1>Review</h1>
+    <div class="meta">Your judgment for this conversation. Mirrors the hw1-session.jsonl fields.</div>
+    <label for="expected">Expected behavior (from SPEC.md)</label>
+    <textarea id="expected"></textarea>
+    <label for="requirement">Requirement id(s)</label>
+    <input id="requirement" placeholder="e.g. ESC-1, RESP-3">
+    <label>Met requirement?</label>
+    <div class="seg" id="met">
+      <button class="btn" data-v="true">Met</button>
+      <button class="btn" data-v="false">Not met</button>
+    </div>
+    <label for="source">Problem source (if not met)</label>
+    <select id="source">
+      <option value="">—</option>
+      <option value="prompt">prompt: tools were right, model decided poorly</option>
+      <option value="tool">tool: a tool returned/changed the wrong thing</option>
+      <option value="specification">specification: SPEC.md doesn't say</option>
+    </select>
+    <label for="notes">Notes</label>
+    <textarea id="notes" style="min-height:110px"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="saveReview">Save review</button>
+      <button class="btn primary" id="export">Export to jsonl</button>
+    </div>
+    <div class="meta" id="exportState" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="preview">Preview record</button>
+      <button class="btn danger" id="delete">Delete session</button>
+    </div>
+    <pre id="recordPreview" style="display:none"></pre>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let info = null, current = null, met = null, busy = false;
+
+function toast(msg, ms = 2600) {
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = "none"), ms);
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || res.statusText);
+  return body;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+async function loadInfo() {
+  info = await api("/api/info");
+  $("info").textContent = `model ${info.model} · prompt ${info.prompt_version} · ${info.session_file}: ${info.session_file_records} records`;
+  $("role").innerHTML = info.roles.map((r) => `<option>${r}</option>`).join("");
+  $("role").value = "shopper";
+  $("user").value = info.presets.shopper;
+}
+
+async function loadSessions() {
+  const list = await api("/api/sessions");
+  $("sessions").innerHTML = list.map((s) => {
+    const verdict = s.met_requirement === true ? '<span class="pill ok">met</span>'
+      : s.met_requirement === false ? '<span class="pill bad">not met</span>' : "";
+    const exported = s.exported ? '<span class="pill">exported</span>' : "";
+    return `<li data-id="${s.id}" class="${current && current.id === s.id ? "active" : ""}">
+      <div class="t">${esc(s.title)}</div>
+      <div class="meta">${s.role} ${s.user_id} · ${s.turns} turn(s) ${verdict} ${exported}</div></li>`;
+  }).join("") || '<li class="meta">No sessions yet.</li>';
+  document.querySelectorAll(".sessions li[data-id]").forEach((li) =>
+    li.addEventListener("click", () => openSession(li.dataset.id)));
+}
+
+function renderDb(c) {
+  if (!c) return "";
+  const parts = [];
+  c.refunds.forEach((r) => parts.push(`refund #${r.id} on order ${r.order_id}: $${(r.amount_cents / 100).toFixed(2)} ${r.status}`));
+  c.escalations.forEach((e) => parts.push(`ticket #${e.id}${e.order_id ? " on order " + e.order_id : ""}: ${e.summary}`));
+  c.orders.forEach((o) => parts.push(`order ${o.order_id}: ${o.from} → ${o.to}`));
+  return parts.length ? `<div class="db">Database changes: ${parts.map(esc).join(" · ")}</div>` : "";
+}
+
+function renderTurn(t) {
+  const steps = t.steps.map((s) => {
+    if (s.type === "text") return `<div class="step text">${esc(s.text)}</div>`;
+    const ok = s.result && typeof s.result === "object" && "ok" in s.result
+      ? (s.result.ok ? " ✓" : ` ✗ ${s.result.error || ""}`) : "";
+    return `<details class="step tool"><summary>${esc(s.name)}(${esc(JSON.stringify(s.arguments))})${esc(ok)}</summary>
+      <pre>${esc(JSON.stringify(s.result, null, 2))}</pre></details>`;
+  }).join("");
+  return `<div class="turn">
+    <div class="who" style="text-align:right">you</div>
+    <div class="bubble user">${esc(t.request)}</div>
+    ${steps ? `<div class="steps">${steps}</div>` : ""}
+    <div class="who">agent · ${t.latency_s}s</div>
+    ${t.error ? `<div class="bubble reply err">${esc(t.error)}</div>` : `<div class="bubble reply">${esc(t.response)}</div>`}
+    ${renderDb(t.db_changes)}
+  </div>`;
+}
+
+function renderNewChat() {
+  current = null;
+  $("head").innerHTML = '<span class="meta">No chat selected</span>';
+  $("chat").innerHTML = '<div class="empty">Start a new chat from the box on the left, or pick a saved session.</div>';
+  $("msg").disabled = $("send").disabled = true;
+  $("msg").placeholder = "Start a chat on the left first";
+  ["expected", "requirement", "notes"].forEach((id) => ($(id).value = ""));
+  $("source").value = ""; setMet(null);
+  $("exportState").textContent = "Start a chat to review it.";
+  $("recordPreview").style.display = "none";
+  loadSessions();
+}
+
+function renderSession() {
+  const s = current;
+  $("head").innerHTML = `<input class="titleEdit" id="titleEdit" title="Click to rename" value="${esc(s.title || "Untitled session")}">
+    <span class="meta"> · ${s.role} ${s.user_id}${s.store_id ? " (store " + s.store_id + ")" : ""} · ${s.model} · prompt ${s.prompt_version}</span>`;
+  const t = $("titleEdit");
+  t.size = Math.max(t.value.length, 12);
+  t.addEventListener("keydown", (e) => { if (e.key === "Enter") t.blur(); if (e.key === "Escape") { t.value = s.title; t.blur(); } });
+  t.addEventListener("blur", () => rename(t.value));
+  $("chat").innerHTML = s.turns.length ? s.turns.map(renderTurn).join("")
+    : '<div class="empty">Say something to the agent.</div>';
+  $("chat").scrollTop = $("chat").scrollHeight;
+  $("msg").disabled = $("send").disabled = busy;
+  $("msg").placeholder = "Reply… (Enter to send, Shift+Enter for a new line)";
+  const r = s.review;
+  $("expected").value = r.expected || "";
+  $("requirement").value = r.requirement || "";
+  $("source").value = r.problem_source || "";
+  $("notes").value = r.notes || "";
+  setMet(r.met_requirement);
+  $("exportState").textContent = s.exported_at ? `Exported to hw1-session.jsonl at ${s.exported_at}` : "Not exported yet.";
+  $("export").disabled = !!s.exported_at;
+  $("recordPreview").style.display = "none";
+}
+
+function setMet(v) {
+  met = v;
+  document.querySelectorAll("#met button").forEach((b) => b.classList.toggle("on", String(v) === b.dataset.v));
+}
+
+async function openSession(id) {
+  current = await api(`/api/sessions/${id}`);
+  renderSession(); loadSessions(); $("msg").focus();
+}
+
+async function rename(title) {
+  title = title.trim();
+  if (!current || !title || title === current.title) { if (current) $("titleEdit").value = current.title; return; }
+  try { current = await api(`/api/sessions/${current.id}`, { method: "PATCH", body: JSON.stringify({ title }) }); loadSessions(); }
+  catch (e) { toast(e.message, 5000); }
+}
+
+async function startChat() {
+  const text = $("startMsg").value.trim();
+  if (!text || busy) return;
+  try {
+    current = await api("/api/sessions", { method: "POST",
+      body: JSON.stringify({ role: $("role").value, user_id: Number($("user").value) }) });
+  } catch (e) { toast(e.message, 5000); return; }
+  $("startMsg").value = "";
+  renderSession(); $("chat").innerHTML = "";
+  await sendText(text);
+}
+
+async function send() {
+  const text = $("msg").value.trim();
+  if (!text || busy || !current) return;
+  $("msg").value = "";
+  await sendText(text);
+}
+
+async function sendText(text) {
+  busy = true; $("msg").disabled = $("send").disabled = $("startMsg").disabled = true;
+  $("chat").insertAdjacentHTML("beforeend",
+    `<div class="turn"><div class="who" style="text-align:right">you</div><div class="bubble user">${esc(text)}</div>
+     <div class="who">agent is thinking…</div></div>`);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  try { current = await api(`/api/sessions/${current.id}/messages`, { method: "POST", body: JSON.stringify({ text }) }); }
+  catch (e) { toast(e.message, 5000); }
+  busy = false; $("startMsg").disabled = false; renderSession(); loadSessions(); $("msg").focus();
+}
+
+function reviewBody() {
+  return { expected: $("expected").value, requirement: $("requirement").value,
+           met_requirement: met, problem_source: $("source").value || null, notes: $("notes").value };
+}
+
+async function saveReview(quiet) {
+  if (!current) return;
+  current = await api(`/api/sessions/${current.id}/review`, { method: "PUT", body: JSON.stringify(reviewBody()) });
+  if (!quiet) toast("Review saved");
+  renderSession(); loadSessions();
+}
+
+$("role").addEventListener("change", () => { $("user").value = info.presets[$("role").value] ?? ""; });
+$("startMsg").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startChat(); } });
+$("send").addEventListener("click", send);
+$("msg").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+document.querySelectorAll("#met button").forEach((b) =>
+  b.addEventListener("click", () => setMet(met === (b.dataset.v === "true") ? null : b.dataset.v === "true")));
+$("saveReview").addEventListener("click", () => saveReview(false).catch((e) => toast(e.message, 5000)));
+$("export").addEventListener("click", async () => {
+  if (!current) return;
+  try {
+    await saveReview(true);
+    const r = await api(`/api/sessions/${current.id}/export`, { method: "POST" });
+    current = r.session; toast(`Exported. hw1-session.jsonl now has ${r.records} records`);
+    renderSession(); loadSessions(); loadInfo();
+  } catch (e) { toast(e.message, 5000); }
+});
+$("preview").addEventListener("click", async () => {
+  if (!current) return;
+  try {
+    await saveReview(true);
+    const rec = await api(`/api/sessions/${current.id}/record`);
+    $("recordPreview").textContent = JSON.stringify(rec, null, 2); $("recordPreview").style.display = "block";
+  } catch (e) { toast(e.message, 5000); }
+});
+$("delete").addEventListener("click", async () => {
+  if (!current || !confirm("Delete this session from Studio? (Records already exported to the jsonl are kept.)")) return;
+  await api(`/api/sessions/${current.id}`, { method: "DELETE" });
+  renderNewChat(); toast("Session deleted");
+});
+$("reset").addEventListener("click", async () => {
+  if (!confirm("Re-seed data/cartwheel.db? This undoes every refund, cancellation and ticket made so far.")) return;
+  $("reset").disabled = true;
+  try { await api("/api/reset-data", { method: "POST" }); toast("Order data reset to the original seed"); }
+  catch (e) { toast(e.message, 5000); }
+  $("reset").disabled = false;
+});
+
+loadInfo().then(renderNewChat).catch((e) => toast(e.message, 5000));
+</script>
+</body>
+</html>
