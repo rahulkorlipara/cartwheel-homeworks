@@ -1,5 +1,7 @@
 # Homework 1 Plan: Rahul + Claude
 
+> **Status (2026-10-24): HW1 is complete.** It's committed on the `hw1` branch and pushed to `origin/hw1`. The video was skipped because Rahul is doing the course to learn, not to submit. **Next: HW2, in a new session.** See "Next session" at the end of this file.
+
 ## Context
 Homework 1 asks for three things:
 - Five unfinished support tools completed in `agent/tools.py` (Python).
@@ -124,10 +126,10 @@ Required conversations:
   - [x] #9b shopper 1 disputes the speaker charge (order 301): NOT met (ESC-3, RESP-2, RESP-3, prompt). Called disputes out of scope, said "Done" for a queued refund, invented timing and email
   - [x] #10 merchant 9002 cancels shipped order 7713: NOT met (RESP-1, RESP-3, prompt). Offered a refund against policy before checking it; invented a "return before refund" rule
 - [x] Step 4: Extra `get_order_details` tool built (all roles, same access as get_order), 7 tests pass, works live when asked "what did I buy?". Status replies now include the item through a prompt instruction (see below).
-- [ ] Step 5: Part C prompt investigation
-  - Candidates so far: **RESP-3 invented facts (evidence: #3, #7, #9b)**, tone/too many exclamations (#1, #3), **ESC-2 account changes (evidence: #7)**, RESP-4 hiding whether an order exists (#4), revealing its instructions (#5, not in SPEC), RESP-2, **the ESC-1 conflict: prompt says escalate, spec says queue (evidence: #8)**, role-aware wording for support users (#8), **disputes refused instead of escalated (ESC-3, #9a, #9b)**
-- [ ] Step 6: Commit
-- [ ] Step 7: Video (Rahul)
+- [x] Step 5: Part C. Fixed ESC-3 (disputes) with a prompt edit, v2 final, accepted by Rahul. See "Prompt change #2" below and `hw1-part-c.md`.
+  - Candidates considered but **not fixed** (still open): RESP-3 invented facts (#3, #7, #9b, #10), ESC-2 account changes (#7), the ESC-1 conflict where the prompt says escalate and the spec says queue (#8), tone/too many exclamations (#1, #3, #5), RESP-4 hiding whether an order exists (#4), revealing its instructions (#5, not in SPEC), and role-aware wording for support users (#8)
+- [x] Step 6: Committed and pushed to the hw1 branch
+- [~] Step 7: Video. Skipped: Rahul is learning, not submitting
 
 **Note:** the course CLI prints only the final reply and hides the line the agent says before calling a tool. Claude captures conversations with a script that shows every step.
 
@@ -146,7 +148,7 @@ A local web app for chatting with the agent and reviewing traces. It replaces th
 - **Evidence:** in #1 the reply didn't name the item, and Rahul asked for it.
 - **Version 1:** "When you report on an order, include the item name using get_order_details." Followed **0 of 4** times on "status of my order #4127?"
 - **Version 2 (kept):** "Whenever you call get_order, also call get_order_details for the same order and name the item (product name and quantity) in your reply." Followed **4 of 4** times.
-- **Prompt version:** Part B was recorded on `d108f6949e5e`, and the prompt is now `6d58f2092b4d`. For Part C, the "before" run must use the current prompt, so that the Part C edit is the only difference between before and after.
+- **Prompt versions:** Part B was recorded on `d108f6949e5e`. After this change it was `6d58f2092b4d`, which is the Part C "before" baseline.
 - **Evidence sessions in Studio:** "After item-name instruction…" (version 1) and "Item-name instruction v2: run 1–4".
 
 ## Prompt change #2: Part C, ESC-3 charge disputes
@@ -154,5 +156,19 @@ A local web app for chatting with the agent and reviewing traces. It replaces th
 - **Before** (`6d58f2092b4d`): escalated 0/3 and refused the dispute 3/3. **After** (`0c54c3eaba19`): escalated 3/3, cited cw-disputes 1/3.
 - **Evidence:** `hw1-part-c.md`, and the Studio sessions titled "Part C before/after: run 1–3".
 - **Edit v2 (final, at Rahul's request):** "Charge disputes always go to a human; a dispute is not a payment-card change, so do not refuse it. First find the order (find_order or list_my_orders), then call escalate_to_human with the order id in the summary. In your reply, cite cw-disputes and state only the ticket id and response time the tool returned."
-- **v2 results** (`46c341cfbd32`): escalated 3/3, looked up the order 3/3, order 301 in the ticket summary 3/3, cited cw-disputes 3/3.
-- [ ] Step 5 is done once Rahul accepts v2.
+- **v2 results** (`46c341cfbd32`): escalated 3/3, looked up the order 3/3, order 301 in the ticket summary 3/3, cited cw-disputes 3/3. Rahul accepted v2.
+- **Still imperfect:** some unsupported phrasing remains, e.g. "work with your payment processor". The escalation tool always stores `order_id` as empty, so the order number can only go in the summary text. That would need a tool fix.
+
+**Current prompt version: `46c341cfbd32`.** It includes prompt changes #1 and #2.
+
+---
+
+## Next session: HW2 (tracing and authenticated endpoints)
+- **Before starting:** Rahul installs **Docker Desktop** (Apple Silicon). It isn't installed yet, and HW2 runs Langfuse locally through Docker Compose.
+- **Handout:** `homework/module-1/hw2.md`. Code holes:
+  - `server/app.py`: `create_session`, `post_message`
+  - `observability/instrument.py`: `record_tool_result`, `_set_permission_denied_attributes`
+- **Approach:** the handout says to explain the eval concepts in depth (traces, spans, `gen_ai.*` vs `cartwheel.*` attributes, prompt versioning, why the server decides identity) and to treat the infrastructure as a checklist.
+- **Studio:** extend it for HW2, e.g. link each turn to its Langfuse trace.
+- **Known test state:** the full suite has 1 expected failure, `test_m2_run_judge_persists_store_predictions_for_prevalence`. It tries to reach Langfuse at localhost:3000 and should pass once Langfuse is running.
+- **How Rahul works:** no submission or videos. Claude codes and runs things; Rahul makes the judgment calls. One step at a time, with results shown before anything is recorded.
